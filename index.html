@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나와 닮은 귀여운 동물 테스트 🐾</title>
+    <style>
+        :root {
+            --primary-color: #ff9a9e;
+            --background-color: #f6f8f9;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h1 { font-size: 1.8rem; color: #444; margin-bottom: 10px; }
+        p { color: #666; font-size: 1rem; line-height: 1.5; }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            background-color: #fecfef;
+            color: #ff7a7e;
+        }
+
+        /* 각 화면 상태 */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* 진행 바 */
+        .progress-container {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        /* 질문 및 답변 스타일 */
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+            word-break: keep-all;
+        }
+        .answer-btn {
+            background-color: #f0f2f5;
+            color: #333;
+            border: 2px solid transparent;
+            padding: 16px;
+            font-size: 1rem;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            width: 100%;
+            text-align: left;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        .answer-btn:hover {
+            background-color: #e4e6eb;
+            border-color: var(--primary-color);
+        }
+
+        /* 결과 창 스타일 */
+        .result-emoji { font-size: 5rem; margin: 20px 0; }
+        .result-animal { font-size: 1.8rem; font-weight: bold; margin-bottom: 5px; color: #ff7a7e; }
+        .result-title { font-size: 1.2rem; color: #777; margin-bottom: 25px; }
+        
+        .box {
+            background-color: #fff5f5;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .box h3 { margin-top: 0; font-size: 1rem; color: #ff7a7e; }
+        .box ul { margin: 0; padding-left: 20px; color: #555; font-size: 0.95rem; }
+        .box li { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="start-page" class="page active">
+            <div style="font-size: 4.5rem; margin-bottom: 10px;">🐾</div>
+            <h1>나의 동물 성격 테스트</h1>
+            <p>간단한 32개의 질문으로<br>나의 진짜 성격과 닮은 동물을 찾아보세요!</p>
+            <button class="btn" onclick="startTest()">테스트 시작하기</button>
+        </div>
+
+        <div id="question-page" class="page">
+            <div class="progress-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <div id="question-number" style="color: #aaa; font-weight: bold; margin-bottom: 10px;">1/32</div>
+            <div id="question-text" class="question-text">질문 텍스트</div>
+            <div id="answer-buttons">
+                </div>
+        </div>
+
+        <div id="result-page" class="page">
+            <p style="font-size: 0.9rem; color: #aaa; margin: 0;">당신의 숨겨진 성격은?</p>
+            <div id="result-emoji" class="result-emoji">🐶</div>
+            <div id="result-animal" class="result-animal">강아지</div>
+            <div id="result-title" class="result-title">한 줄 요약</div>
+            
+            <div class="box">
+                <h3>장점 👍</h3>
+                <ul id="result-pros"></ul>
+            </div>
+            <div class="box">
+                <h3>단점 👎</h3>
+                <ul id="result-cons"></ul>
+            </div>
+
+            <button class="btn" onclick="restartTest()">다시 테스트하기</button>
+        </div>
+    </div>
+
+    <script>
+        // 32가지 성향 분석을 위한 질문 데이터 (A 타입 점수++, B 타입 점수--)
+        // 성향 기준 구분: E/I(외향/내향), F/T(감정/이성), P/J(즉흥/계획) 조합을 골고루 분배
+        const questions = [
+            { q: "주말에 집에 혼자 있으면?", a: "몸이 근질거려 나가고 싶다", b: "이게 바로 행복이지! 충전 완료", type: "EI" },
+            { q: "새로운 사람들과 모임에 갔을 때 나는?", a: "먼저 말을 걸며 분위기를 주도한다", b: "조용히 이야기를 들으며 관찰한다", type: "EI" },
+            { q: "친구가 '나 슬퍼서 빵 샀어'라고 한다면?", a: "왜 슬펐어? 무슨 일 있었어?", b: "무슨 빵 샀어? 맛있어?", type: "FT" },
+            { q: "여행을 갈 때 나의 스타일은?", a: "비행기 표만 끊고 발길 닿는 대로 간다", b: "시간 단위로 맛집과 동선을 다 짜둔다", type: "PJ" },
+            { q: "팀 과제를 할 때 나의 포지션은?", a: "발표나 팀장을 맡아 이끄는 쪽", b: "조용히 내 자료 조사를 완벽히 하는 쪽", type: "EI" },
+            { q: "친구가 힘든 일을 털어놓을 때 나는?", a: "마음 아파하며 폭풍 공감을 해준다", b: "상황을 분석하고 해결책을 제시하려 한다", type: "FT" },
+            { q: "갑자기 약속이 취소되었다면?", a: "아쉬워서 다른 사람에게 연락해 본다", b: "오예! 집에서 편하게 쉴 생각에 신난다", type: "EI" },
+            { q: "방 청소를 하려고 마음먹었을 때?", a: "치우다가 추억의 물건을 보며 딴길로 샌다", b: "구역을 나눠서 순식간에 끝내버린다", type: "PJ" },
+            { q: "대화를 할 때 나는 주로?", a: "말을 많이 하고 리액션을 크게 한다", b: "상대의 말을 경청하고 생각을 정리해 말한다", type: "EI" },
+            { q: "영화나 드라마를 볼 때 내 모습은?", a: "과몰입해서 눈물을 흘리거나 감정이입한다", b: "스토리나 연출, 개연성을 평가하며 본다", type: "FT" },
+            { q: "과제를 제출해야 할 때?", a: "마감 직전 초인적인 힘으로 몰아서 한다", b: "미리미리 조금씩 해두고 여유롭게 제출한다", type: "PJ" },
+            { q: "화가 났을 때 나는?", a: "그 자리에서 내 감정을 표현해야 풀린다", b: "혼자 생각할 시간을 가지며 삭힌다", type: "EI" },
+            { q: "친구가 내 옷 스타일을 지적한다면?", a: "마음이 상하고 계속 신경 쓰인다", b: "그냥 취향이 다른가 보다 하고 넘긴다", type: "FT" },
+            { q: "주변 정리를 할 때?", a: "물건이 널브러져 있어도 어디 있는지 다 안다", b: "정해진 위치에 물건이 딱 놓여있어야 편하다", type: "PJ" },
+            { q: "쇼핑하러 매장에 들어갔을 때?", a: "점원과 수다를 떨며 추천을 받는다", b: "점원이 다가오면 부담스러워 도망친다", type: "EI" },
+            { q: "상처를 받는 말의 종류는?", a: "너 좀 무심한 것 같아", b: "너 일 처리를 왜 그렇게 해?", type: "FT" },
+            { q: "새해 계획을 세울 때?", a: "지키지 못하더라도 일단 거창하게 세운다", b: "달성 가능한 목표를 세밀하게 적는다", type: "PJ" },
+            { q: "사람들이 말하는 나의 첫인상은?", a: "활기차고 낯을 안 가릴 것 같다", b: "차분하고 조용해 보인다", type: "EI" },
+            { q: "열심히 준비한 프로젝트가 실패했다면?", a: "노력했던 과정과 사람들과의 추억을 떠올린다", b: "실패한 원인을 냉정하게 분석한다", type: "FT" },
+            { q: "약속 장소에 나갈 때?", a: "준비하다 늦어서 아슬아슬하게 도착한다", b: "약속 시간 10분 전에는 이미 도착해 있다", type: "PJ" },
+            { q: "스트레스를 해소하는 방법은?", a: "친구들을 만나 수다 떨고 노래방 가기", b: "침대 위 이불 속에서 넷플릭스 보기", type: "EI" },
+            { q: "친구가 고민 끝에 결정을 내렸을 때?", a: "네가 행복하다면 난 무조건 네 편이야!", b: "그 결정이 현실적으로 괜찮은 거야?", type: "FT" },
+            { q: "일기나 기록을 쓸 때?", a: "그날의 감정과 기분을 일기장에 쏟아붓는다", b: "오늘 했던 일과 사실 위주로 간단히 쓴다", type: "FT" },
+            { q: "인테리어를 바꿀 때?", a: "느낌 오는 대로 가구를 일단 옮겨본다", b: "미리 사이즈를 다 재고 배치도를 그려본다", type: "PJ" },
+            { q: "새로운 취미를 시작할 때?", a: "일단 동호회나 소모임에 가입한다", b: "유튜브로 혼자 독학하며 마스터한다", type: "EI" },
+            { q: "위로를 건넬 때 나는?", a: "마음이 정말 아프겠다... (같이 울컥)", b: "돈은 얼마나 들었대? 힘내라 (현실 조언)", type: "FT" },
+            { q: "마감 기한이 없는 자유 과제라면?", a: "계속 미루다가 막판에 번뜩이는 아이디어로 완성", b: "매일 조금씩 규칙적으로 분량을 채워 완성", type: "PJ" },
+            { q: "식당에서 주문 벨이 없을 때 나는?", a: "우렁찬 목소리로 '사장님!'을 부른다", b: "지나갈 때까지 눈치 보며 타이밍을 노린다", type: "EI" },
+            { q: "칭찬을 들었을 때 더 기분 좋은 말은?", a: "너랑 있으면 성격이 너무 편하고 좋아!", b: "너 진짜 똑똑하고 일 잘한다!", type: "FT" },
+            { q: "내가 생각하는 나의 책상은?", a: "예술가의 혼이 담긴 자유로운 무질서", b: "각 맞춰 정리된 완벽한 질서", type: "PJ" },
+            { q: "인간관계에서 나는?", a: "넓고 얕게 다양한 사람들과 친해진다", b: "좁고 깊게 소수의 사람들과 깊은 관계를 맺는다", type: "EI" },
+            { q: "친구가 시험에서 떨어졌을 때?", a: "많이 속상하지? 맛있는 거 먹으러 가자", b: "실수했어? 다음 시험은 언제야?", type: "FT" }
+        ];
+
+        // 10가지 동물 결과 데이터
+        const animals = [
+            { name: "사랑스러운 강아지", emoji: "🐶", title: "모든 사람에게 사랑받는 평화주의자", pros: ["친근하고 친절함", "공감 능력이 엄청남", "사교성이 좋음"], cons: ["거절을 잘 못함", "남의 시선을 너무 의식함"], score: { ei: 3, ft: 3, pj: 0 } },
+            { name: "도도한 고양이", emoji: "🐱", title: "독립심이 강한 마이웨이 전문가", pros: ["혼자서도 잘 지냄", "독창적이고 주관이 뚜렷함", "차분한 집중력"], cons: ["가끔 무심해 보임", "속마음을 잘 열지 않음"], score: { ei: -3, ft: -1, pj: -1 } },
+            { name: "발랄한 토끼", emoji: "🐰", title: "아이디어가 통통 튀는 분위기 메이커", pros: ["즉흥적이고 재치가 넘침", "새로운 도전을 좋아함", "적응력이 빠름"], cons: ["끈기가 조금 부족함", "쉽게 지루해함"], score: { ei: 3, ft: 1, pj: -3 } },
+            { name: "소심한 고슴도치", emoji: "🦔", title: "겉은 까칠해도 속은 따뜻한 알짜배기", pros: ["신중하고 조심성이 많음", "맡은 일에 책임감이 강함", "경청을 잘함"], cons: ["새로운 환경을 두려워함", "걱정이 너무 많음"], score: { ei: -3, ft: 2, pj: 3 } },
+            { name: "영리한 여우", emoji: "🦊", title: "눈치 빠르고 효율적인 현실주의자", pros: ["상황 판단이 엄청 빠름", "말을 조리 있게 잘함", "위기 대처 능력 최고"], cons: ["가끔 계산적으로 보임", "귀찮은 일을 싫어함"], score: { ei: 2, ft: -3, pj: -1 } },
+            { name: "듬직한 곰", emoji: "🐻", title: "한결같이 자리를 지키는 묵직한 리더", pros: ["계획적이고 성실함", "약속을 철저히 지킴", "주변 사람들을 잘 챙김"], cons: ["융통성이 조금 부족함", "변화를 어색해함"], score: { ei: -1, ft: 1, pj: 3 } },
+            { name: "행복한 쿼카", emoji: "🐨", title: "긍정 에너지 100% 낙천주의자", pros: ["항상 밝고 긍정적임", "사람들에게 웃음을 줌", "스트레스를 잘 안 받음"], cons: ["덜렁거릴 때가 많음", "현실감이 조금 부족할 때가 있음"], score: { ei: 3, ft: 2, pj: -2 } },
+            { name: "멋쟁이 호랑이", emoji: "🐯", title: "자신감 넘치는 불도저 카리스마", pros: ["목표 지향적이고 추진력 있음", "자신감이 넘침", "결단력이 빠름"], cons: ["남에게 지기 싫어함", "고집이 센 편임"], score: { ei: 2, ft: -3, pj: 2 } },
+            { name: "재주꾼 원숭이", emoji: "🐵", title: "호기심 많고 못 하는 게 없는 만능 재주꾼", pros: ["다방면에 다재다능함", "유머 감각이 뛰어남", "임기응변의 달인"], cons: ["진지한 분위기를 어색해함", "산만하다는 소리를 들음"], score: { ei: 2, ft: -1, pj: -3 } },
+            { name: "귀여운 오리", emoji: "🦆", title: "조용히 자기 할 일 다 하는 모범생", pros: ["논리적이고 객관적임", "시간 약속을 잘 지킴", "실수가 적고 꼼꼼함"], cons: ["감정 표현에 서툶", "융통성 없는 규칙에 집착함"], score: { ei: -2, ft: -3, pj: 3 } }
+        ];
+
+        let currentIdx = 0;
+        // 성향 점수 누적 (기본 0에서 출발)
+        let score = { ei: 0, ft: 0, pj: 0 };
+
+        function startTest() {
+            document.getElementById("start-page").classList.remove("active");
+            document.getElementById("question-page").classList.add("active");
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentIdx >= questions.length) {
+                showResult();
+                return;
+            }
+
+            // 질문 진행률 업데이트
+            document.getElementById("question-number").innerText = `${currentIdx + 1}/${questions.length}`;
+            document.getElementById("progress-bar").style.width = `${((currentIdx + 1) / questions.length) * 100}%`;
+            document.getElementById("question-text").innerText = questions[currentIdx].q;
+
+            const buttonsContainer = document.getElementById("answer-buttons");
+            buttonsContainer.innerHTML = ""; // 기존 버튼 초기화
+
+            // 답변 버튼 생성
+            const btnA = document.createElement("button");
+            btnA.className = "answer-btn";
+            btnA.innerText = questions[currentIdx].a;
+            btnA.onclick = () => selectAnswer('A');
+
+            const btnB = document.createElement("button");
+            btnB.className = "answer-btn";
+            btnB.innerText = questions[currentIdx].b;
+            btnB.onclick = () => selectAnswer('B');
+
+            buttonsContainer.appendChild(btnA);
+            buttonsContainer.appendChild(btnB);
+        }
+
+        function selectAnswer(choice) {
+            const currentQ = questions[currentIdx];
+            const type = currentQ.type.toLowerCase(); // 'ei', 'ft', 'pj'
+            
+            // A를 고르면 플러스, B를 고르면 마이너스로 가중치 부여
+            const value = (choice === 'A') ? 1 : -1;
+            score[type] += value;
+
+            currentIdx++;
+            showQuestion();
+        }
+
+        function showResult() {
+            document.getElementById("question-page").classList.remove("active");
+            document.getElementById("result-page").classList.add("active");
+
+            // 유클리드 거리를 사용하여 유저의 점수와 가장 가까운 최적의 동물 매칭
+            let bestMatch = null;
+            let minDistance = Infinity;
+
+            animals.forEach(animal => {
+                let distance = Math.pow(score.ei - animal.score.ei, 2) + 
+                               Math.pow(score.ft - animal.score.ft, 2) + 
+                               Math.pow(score.pj - animal.score.pj, 2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestMatch = animal;
+                }
+            });
+
+            // 화면에 결과 대입
+            document.getElementById("result-emoji").innerText = bestMatch.emoji;
+            document.getElementById("result-animal").innerText = bestMatch.name;
+            document.getElementById("result-title").innerText = bestMatch.title;
+
+            // 장단점 리스트 초기화 후 주입
+            const prosList = document.getElementById("result-pros");
+            const consList = document.getElementById("result-cons");
+            prosList.innerHTML = "";
+            consList.innerHTML = "";
+
+            bestMatch.pros.forEach(item => {
+                const li = document.createElement("li");
+                li.innerText = item;
+                prosList.appendChild(li);
+            });
+
+            bestMatch.cons.forEach(item => {
+                const li = document.createElement("li");
+                li.innerText = item;
+                consList.appendChild(li);
+            });
+        }
+
+        function restartTest() {
+            currentIdx = 0;
+            score = { ei: 0, ft: 0, pj: 0 };
+            document.getElementById("result-page").classList.remove("active");
+            document.getElementById("start-page").classList.add("active");
+        }
+    </script>
+</body>
+</html>
